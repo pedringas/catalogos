@@ -13,6 +13,8 @@ const state = {
     csvData: [],
     matchedProducts: [],
     history: [],
+    titleScale: 1.0,
+    priceScale: 1.0,
     supportedFormats: ['image/jpeg', 'image/png', 'image/webp']
 };
 
@@ -41,7 +43,15 @@ const ui = {
     totalPages: document.getElementById('totalPages'),
     historyList: document.getElementById('historyList'),
     loadingOverlay: document.getElementById('loadingOverlay'),
-    loadingMsg: document.getElementById('loadingMsg')
+    loadingMsg: document.getElementById('loadingMsg'),
+    titleScale: document.getElementById('titleScale'),
+    titleScaleValue: document.getElementById('titleScaleValue'),
+    priceScale: document.getElementById('priceScale'),
+    priceScaleValue: document.getElementById('priceScaleValue'),
+    clearCsvBtn: document.getElementById('clearCsvBtn'),
+    clearImagesBtn: document.getElementById('clearImagesBtn'),
+    validationSection: document.getElementById('validationSection'),
+    validationReport: document.getElementById('validationReport')
 };
 
 // --- Initialization ---
@@ -57,6 +67,29 @@ function switchTab(tabId) {
 
 ui.themeOptions.forEach(opt => opt.addEventListener('change', (e) => state.theme = e.target.value));
 
+ui.titleScale.addEventListener('input', (e) => {
+    state.titleScale = parseFloat(e.target.value);
+    ui.titleScaleValue.textContent = `${Math.round(state.titleScale * 100)}%`;
+    document.documentElement.style.setProperty('--title-scale', state.titleScale);
+});
+
+ui.priceScale.addEventListener('input', (e) => {
+    state.priceScale = parseFloat(e.target.value);
+    ui.priceScaleValue.textContent = `${Math.round(state.priceScale * 100)}%`;
+    document.documentElement.style.setProperty('--price-scale', state.priceScale);
+});
+
+function getFooterText() {
+    const now = new Date();
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${months[now.getMonth()]} ${now.getFullYear()}`;
+}
+
+function truncateText(text, limit = 29) {
+    if (text.length <= limit) return text;
+    return text.substring(0, limit) + '...';
+}
+
 // --- 2. Data Handlers ---
 
 function initDragAndDrop() {
@@ -71,6 +104,26 @@ function initDragAndDrop() {
     setupZone(ui.imageDropZone, (files) => handleImages(files));
     ui.imageDropZone.addEventListener('click', () => ui.imageInput.click());
     ui.imageInput.addEventListener('change', (e) => handleImages(Array.from(e.target.files)));
+
+    ui.clearCsvBtn.addEventListener('click', () => {
+        if (confirm('¿Estás seguro de que deseas borrar todos los datos de la planilla?')) {
+            state.csvData = [];
+            ui.csvStatus.textContent = 'Selecciona archivo CSV';
+            ui.clearCsvBtn.style.display = 'none';
+            checkReady();
+        }
+    });
+
+    ui.clearImagesBtn.addEventListener('click', () => {
+        if (confirm('¿Estás seguro de que deseas vaciar toda la galería de imágenes?')) {
+            state.images.forEach(img => URL.revokeObjectURL(img.url));
+            state.images.clear();
+            renderGallery();
+            ui.clearImagesBtn.style.display = 'none';
+            ui.validationSection.style.display = 'none';
+            checkReady();
+        }
+    });
 }
 
 function setupZone(zone, callback) {
@@ -94,12 +147,30 @@ function handleLogo(file) {
 }
 
 function handleCsv(file) {
-    if (file && (file.name.endsWith('.csv') || file.type === 'text/csv')) {
+    if (!file) return;
+    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+    if (isExcel) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            state.csvData = XLSX.utils.sheet_to_json(firstSheet);
+            ui.csvStatus.textContent = `✅ ${file.name} (${state.csvData.length} ítems)`;
+            ui.clearCsvBtn.style.display = 'inline-block';
+            validateData();
+            checkReady();
+        };
+        reader.readAsArrayBuffer(file);
+    } else if (file.name.endsWith('.csv') || file.type === 'text/csv') {
         Papa.parse(file, {
             header: true, skipEmptyLines: true,
             complete: (res) => {
                 state.csvData = res.data;
                 ui.csvStatus.textContent = `✅ ${file.name} (${res.data.length} ítems)`;
+                ui.clearCsvBtn.style.display = 'inline-block';
+                validateData();
                 checkReady();
             }
         });
@@ -115,6 +186,8 @@ function handleImages(files) {
         }
     });
     renderGallery();
+    ui.clearImagesBtn.style.display = state.images.size > 0 ? 'inline-block' : 'none';
+    validateData();
     checkReady();
 }
 
@@ -132,6 +205,8 @@ window.removeImage = (name) => {
     URL.revokeObjectURL(state.images.get(name).url);
     state.images.delete(name);
     renderGallery();
+    ui.clearImagesBtn.style.display = state.images.size > 0 ? 'inline-block' : 'none';
+    validateData();
     checkReady();
 };
 
@@ -152,6 +227,17 @@ ui.downloadModel.addEventListener('click', () => {
 });
 
 ui.generateBtn.addEventListener('click', () => {
+    const missingPhotos = state.csvData.filter(row => {
+        const code = (row.Codigo || row.codigo || row.Articulo || Object.values(row)[0] || "").toString().toLowerCase().trim();
+        return !state.images.has(code);
+    });
+
+    if (missingPhotos.length > 0) {
+        if (!confirm(`Hay ${missingPhotos.length} productos sin imagen que NO aparecerán en el catálogo. ¿Deseas continuar?`)) {
+            return;
+        }
+    }
+
     ui.loadingMsg.textContent = "Preparando catálogo...";
     ui.loadingOverlay.style.display = 'flex';
     setTimeout(() => {
@@ -162,6 +248,51 @@ ui.generateBtn.addEventListener('click', () => {
     }, 600);
 });
 
+function validateData() {
+    if (state.csvData.length === 0 && state.images.size === 0) {
+        ui.validationSection.style.display = 'none';
+        return;
+    }
+
+    const csvCodes = new Set();
+    state.csvData.forEach(row => {
+        const code = (row.Codigo || row.codigo || row.Articulo || Object.values(row)[0] || "").toString().toLowerCase().trim();
+        if (code) csvCodes.add(code);
+    });
+
+    const imageNames = new Set(Array.from(state.images.keys()));
+    
+    const missingImages = Array.from(csvCodes).filter(code => !imageNames.has(code));
+    const unusedImages = Array.from(imageNames).filter(img => !csvCodes.has(img));
+
+    if (missingImages.length === 0 && unusedImages.length === 0) {
+        ui.validationSection.style.display = 'none';
+        return;
+    }
+
+    ui.validationSection.style.display = 'block';
+    ui.validationReport.innerHTML = `
+        ${missingImages.length > 0 ? `
+            <div class="validation-group warning">
+                <h3>⚠️ Productos sin imagen (${missingImages.length})</h3>
+                <p class="validation-msg">Estos productos no aparecerán en el catálogo final.</p>
+                <div class="badge-list">
+                    ${missingImages.map(c => `<span class="code-badge">${c.toUpperCase()}</span>`).join('')}
+                </div>
+            </div>
+        ` : ''}
+        ${unusedImages.length > 0 ? `
+            <div class="validation-group info">
+                <h3>ℹ️ Imágenes sin datos (${unusedImages.length})</h3>
+                <p class="validation-msg">Estas imágenes no tienen una fila correspondiente en el Excel.</p>
+                <div class="badge-list">
+                    ${unusedImages.map(c => `<span class="code-badge">${c}</span>`).join('')}
+                </div>
+            </div>
+        ` : ''}
+    `;
+}
+
 function processMatchedProducts() {
     state.matchedProducts = [];
     state.csvData.forEach(row => {
@@ -169,7 +300,9 @@ function processMatchedProducts() {
         const title = row.Titulo || row.titulo || row.Nombre || Object.values(row)[1] || 'Producto';
         const price = row.Precio || row.precio || row.Valor || Object.values(row)[2] || '-';
         const img = state.images.get(code);
-        if (img) state.matchedProducts.push({ code, title, price, imageUrl: img.url });
+        if (img) {
+            state.matchedProducts.push({ code, title, price, imageUrl: img.url });
+        }
     });
 }
 
@@ -186,9 +319,9 @@ function renderCatalog(container, isExport) {
     const logoSrc = (isMarPlast && !state.cover.logoUrl) ? state.marPlastLogo : state.cover.logoUrl;
     
     cover.innerHTML = `
-        ${logoSrc ? `<img src="${logoSrc}" class="cover-logo">` : '<div style="height:100px"></div>'}
         <h1 class="cover-title">${state.cover.title || (isMarPlast ? 'MAR-PLAST' : 'Catálogo')}</h1>
-        <div class="cover-footer">Generado por Mar-Plast Pro</div>
+        ${logoSrc ? `<img src="${logoSrc}" class="cover-logo">` : '<div style="height:100px"></div>'}
+        <div class="page-footer">${getFooterText()}</div>
     `;
     container.appendChild(cover);
 
@@ -208,13 +341,14 @@ function renderCatalog(container, isExport) {
                     </div>
                     <div class="product-info">
                         <span class="product-code">Cód. ${prod.code.toUpperCase()}</span>
-                        <h4 class="product-title">${prod.title}</h4>
-                        <div class="product-price">$${prod.price}</div>
+                        <h4 class="product-title" title="${prod.title}">${truncateText(prod.title, 29)}</h4>
+                        <div class="product-price">$${prod.price} <span style="font-size: 0.7em; font-weight: 600;">+IVA</span></div>
                     </div>
                 </div>
             `;
         });
         page.appendChild(grid);
+        page.innerHTML += `<div class="page-footer">${getFooterText()}</div>`;
         container.appendChild(page);
     }
     ui.totalPages.textContent = container.children.length;
@@ -225,6 +359,11 @@ function renderCatalog(container, isExport) {
 ui.exportPdfBtn.addEventListener('click', async () => {
     ui.loadingMsg.textContent = "Generando PDF corporativo...";
     ui.loadingOverlay.style.display = 'flex';
+    
+    // Forzar variables CSS en el buffer de exportación
+    ui.exportBuffer.style.setProperty('--title-scale', state.titleScale);
+    ui.exportBuffer.style.setProperty('--price-scale', state.priceScale);
+    
     renderCatalog(ui.exportBuffer, true);
     
     try {
@@ -240,8 +379,11 @@ ui.exportPdfBtn.addEventListener('click', async () => {
             doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
         }
         const name = `Catalogo_MarPlast_${Date.now()}.pdf`;
+        const pdfBlob = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
         doc.save(name);
-        addToHistory(name);
+        addToHistory(name, pdfUrl);
     } catch (err) { alert("Error al exportar."); }
     finally { ui.loadingOverlay.style.display = 'none'; ui.exportBuffer.innerHTML = ''; }
 });
@@ -250,13 +392,37 @@ function waitImages(element) {
     return Promise.all(Array.from(element.querySelectorAll('img')).map(img => img.complete ? Promise.resolve() : new Promise(res => img.onload = img.onerror = res)));
 }
 
-function addToHistory(name) {
-    state.history.unshift({ name, date: new Date().toLocaleString(), title: state.cover.title || 'Catálogo' });
+function addToHistory(name, url) {
+    state.history.unshift({ 
+        id: Date.now(),
+        name, 
+        url,
+        date: new Date().toLocaleString(), 
+        title: state.cover.title || 'Catálogo' 
+    });
+    
     ui.historyList.innerHTML = state.history.map(h => `
         <div class="history-item">
-            <div class="history-info"><h4>${h.name}</h4><p>${h.title} • ${h.date}</p></div>
-            <div class="history-badge">✓ Descargado</div>
+            <div class="history-info">
+                <h4>${h.name}</h4>
+                <p>${h.title} • ${h.date}</p>
+            </div>
+            <div class="history-actions">
+                <button class="btn-small btn-small-secondary" onclick="viewPdf('${h.url}')">Ver</button>
+                <button class="btn-small btn-small-primary" onclick="downloadFromHistory('${h.url}', '${h.name}')">Descargar</button>
+            </div>
         </div>
     `).join('');
 }
+
+window.viewPdf = (url) => {
+    window.open(url, '_blank');
+};
+
+window.downloadFromHistory = (url, name) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.click();
+};
 

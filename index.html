@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -74,6 +75,23 @@
                             </div>
                         </label>
                     </div>
+
+                    <div class="font-size-config">
+                        <div class="input-group">
+                            <label for="titleScale">Tamaño Título</label>
+                            <div class="slider-container">
+                                <input type="range" id="titleScale" min="0.7" max="1.3" step="0.05" value="1.0">
+                                <span id="titleScaleValue">100%</span>
+                            </div>
+                        </div>
+                        <div class="input-group" style="margin-top: 1rem;">
+                            <label for="priceScale">Tamaño Precio</label>
+                            <div class="slider-container">
+                                <input type="range" id="priceScale" min="0.7" max="1.3" step="0.05" value="1.0">
+                                <span id="priceScaleValue">100%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- CSV Section -->
@@ -81,13 +99,27 @@
                     <div class="card-header">
                         <span class="step-num">Datos</span>
                         <h2>Planilla y Modelo</h2>
-                        <button id="downloadModel" class="btn-text-only">Descargar Modelo .csv</button>
+                        <div class="header-actions">
+                            <button id="clearCsvBtn" class="btn-text-danger" style="display: none;">Limpiar Datos</button>
+                            <button id="downloadModel" class="btn-text-only">Modelo .csv</button>
+                        </div>
                     </div>
                     <div class="drop-zone tiny" id="csvDropZone">
-                        <input type="file" id="csvInput" accept=".csv" hidden>
+                        <input type="file" id="csvInput" accept=".csv, .xlsx, .xls" hidden>
                         <div class="drop-content-minimal" id="csvStatus">
-                            <span>Selecciona archivo CSV</span>
+                            <span>Selecciona archivo Excel o CSV</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Validation Report (Hidden by default) -->
+                <div id="validationSection" class="glass-card validation-card" style="display: none;">
+                    <div class="card-header">
+                        <span class="step-num alert">Reporte</span>
+                        <h2>Observaciones de Carga</h2>
+                    </div>
+                    <div id="validationReport" class="validation-report">
+                        <!-- Report contents -->
                     </div>
                 </div>
 
@@ -95,8 +127,11 @@
                 <div class="glass-card">
                     <div class="card-header">
                         <span class="step-num">Imágenes</span>
-                        <h2>Galería de Productos</h2>
-                        <span class="file-count" id="imageCount">0 archivos</span>
+                        <h2>Galería</h2>
+                        <div class="header-actions">
+                            <button id="clearImagesBtn" class="btn-text-danger" style="display: none;">Vaciar Todo</button>
+                            <span class="file-count" id="imageCount">0 archivos</span>
+                        </div>
                     </div>
                     <div class="image-upload-area">
                         <div class="drop-zone large" id="imageDropZone">

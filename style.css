@@ -14,6 +14,10 @@
     /* Mar-Plast Brand Colors */
     --mp-blue: #005596;
     --mp-orange: #F39200;
+
+    /* Product Specific Variables */
+    --title-scale: 1.0;
+    --price-scale: 1.0;
 }
 
 * {
@@ -137,14 +141,15 @@ header {
     margin-bottom: 1.5rem;
 }
 
-.step-num {
-    background: var(--primary);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 0.2rem 0.6rem;
-    border-radius: 6px;
-    text-transform: uppercase;
+.header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.step-num.alert {
+    background: #f59e0b;
 }
 
 /* Cover Config */
@@ -254,6 +259,30 @@ header {
     background: rgba(0, 85, 150, 0.1);
 }
 
+/* Font Size Control */
+.font-size-config {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.slider-container input[type="range"] {
+    flex: 1;
+    accent-color: var(--primary);
+}
+
+#fontScaleValue {
+    min-width: 3rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
 /* --- Mar-Plast Theme Catalog Styles --- */
 .catalog-page.theme-marplast {
     font-family: 'Nunito', sans-serif !important;
@@ -283,7 +312,7 @@ header {
 .theme-marplast.cover-page::before {
     bottom: -80mm;
     background: var(--mp-orange);
-    opacity: 0.15;
+    opacity: 1;
     border-radius: 40%;
     animation: waveRotate 20s linear infinite;
 }
@@ -291,7 +320,7 @@ header {
 .theme-marplast.cover-page::after {
     bottom: -100mm;
     background: var(--mp-blue);
-    opacity: 0.1;
+    opacity: 1;
     border-radius: 45%;
     animation: waveRotate 25s linear reverse infinite;
 }
@@ -340,13 +369,21 @@ header {
 .theme-marplast .product-title {
     color: var(--mp-blue);
     font-weight: 800;
-    font-size: 16pt;
+    font-size: calc(16pt * var(--title-scale));
+    line-height: 1.2;
+    height: calc(16pt * var(--title-scale) * 1.3); /* Exactly 1 line */
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    margin-bottom: 5px;
 }
 
 .theme-marplast .product-price {
     color: var(--mp-orange);
-    font-size: 20pt;
+    font-size: calc(20pt * var(--price-scale));
     font-weight: 800;
+    margin-top: auto;
 }
 
 .theme-marplast .product-code {
@@ -453,7 +490,22 @@ header {
     cursor: pointer;
     font-size: 0.9rem;
     text-decoration: underline;
-    margin-left: auto;
+}
+
+.btn-text-danger {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.btn-text-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
 }
 
 /* Preview Print Pages */
@@ -485,13 +537,36 @@ header {
 
 .product-item {
     width: calc(50% - 5mm); /* Dos columnas */
-    height: 80mm; /* Altura fija en el catálogo */
+    height: 90mm; /* Aumentado ligeramente para mayor ventilación */
     display: flex;
     flex-direction: column;
     border: 1px solid #eee;
-    padding: 5mm;
+    padding: 6mm;
     background: #fff;
     overflow: hidden;
+}
+
+.product-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-title {
+    font-size: calc(1.1rem * var(--title-scale));
+    line-height: 1.2;
+    height: calc(1.1rem * var(--title-scale) * 1.3);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    margin-bottom: 5px;
+}
+
+.product-price {
+    font-size: calc(1.5rem * var(--price-scale));
+    font-weight: 800;
+    margin-top: auto;
 }
 
 .product-image-container {
@@ -522,14 +597,13 @@ header {
 .cover-logo {
     max-width: 120mm;
     max-height: 80mm;
-    margin-bottom: 30mm;
 }
 
 .cover-title {
     font-size: 48pt;
     font-weight: 800;
     color: #1e1b4b;
-    margin-bottom: 10mm;
+    margin-bottom: 25mm; /* Spacing to the logo below */
     line-height: 1.1;
 }
 
@@ -544,7 +618,7 @@ header {
 .export-buffer .catalog-page {
     width: 794px; /* A4 at 96 DPI */
     height: 1123px;
-    padding: 60px;
+    padding: 40px;
     box-shadow: none;
     margin: 0;
     display: block;
@@ -570,24 +644,41 @@ header {
 .export-buffer .product-grid {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     align-content: flex-start;
-    gap: 30px;
+    gap: 15px;
+    width: 100%;
 }
 
 .export-buffer .product-item {
-    width: 320px; /* Ancho fijo para captura precisa */
-    height: 320px; 
-    margin-bottom: 30px;
+    width: 315px; 
+    height: 335px; 
     display: flex;
     flex-direction: column;
-    border: 1px solid #eee;
-    padding: 20px;
+    padding: 15px;
+    page-break-inside: avoid;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    overflow: hidden; /* Important for html2canvas corner clipping */
+}
+
+.export-buffer .product-title {
+    font-size: calc(16pt * var(--title-scale)) !important;
+    height: calc(16pt * var(--title-scale) * 1.3) !important;
+    line-height: 1.2 !important;
+    -webkit-line-clamp: 1 !important;
+}
+
+.export-buffer .product-price {
+    font-size: calc(20pt * var(--price-scale)) !important;
+    margin-top: auto !important;
+    display: block !important;
 }
 
 .export-buffer .product-image-container {
-    height: 200px; /* Slightly larger for A4 export resolution */
+    height: 190px; /* Slightly reduced to give breathing room for text */
     width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -607,18 +698,58 @@ header {
     gap: 1rem;
 }
 
+.page-footer {
+    position: absolute;
+    bottom: 15px;
+    width: 100%;
+    left: 0;
+    text-align: center;
+    font-size: 8pt;
+    color: #999;
+    font-family: 'Inter', sans-serif;
+}
+
 .history-item {
     background: var(--glass);
     padding: 1.25rem;
     border-radius: 15px;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 1rem;
     align-items: center;
     border: 1px solid var(--glass-border);
 }
 
-.history-info h4 { margin-bottom: 0.25rem; }
-.history-info p { font-size: 0.8rem; color: var(--text-muted); }
+.history-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-small-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+}
+
+.btn-small-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+    border: 1px solid var(--glass-border);
+}
+
+.btn-small:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
 
 /* Overlay & Loader */
 .overlay {
@@ -650,4 +781,47 @@ header {
     text-align: right;
     font-weight: 600;
     color: var(--text-muted);
+}/* Validation Report */
+.validation-card {
+    border: 1px solid #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.validation-report {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.validation-group h3 {
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.validation-group.warning h3 { color: #f59e0b; }
+.validation-group.info h3 { color: #3b82f6; }
+
+.badge-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.code-badge {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--text-muted);
+}
+
+.validation-msg {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
 }
