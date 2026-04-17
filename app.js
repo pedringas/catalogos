@@ -220,7 +220,7 @@ function checkReady() {
 ui.coverTitle.addEventListener('input', (e) => state.cover.title = e.target.value);
 
 ui.downloadCsv.addEventListener('click', () => {
-    const csvContent = "Codigo,Titulo,Precio,UE\nPROD-001,Juguete Camión,4500,12\nPROD-002,Set de Bazar,8200,6";
+    const csvContent = "Codigo,Titulo,Precio,UE,Categoria\nPROD-001,Juguete Camión,4500,12,Juguetes\nPROD-002,Set de Bazar,8200,6,Bazar";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -229,8 +229,8 @@ ui.downloadCsv.addEventListener('click', () => {
 
 ui.downloadExcel.addEventListener('click', () => {
     const data = [
-        { Codigo: "PROD-001", Titulo: "Juguete Camión", Precio: 4500, UE: 12 },
-        { Codigo: "PROD-002", Titulo: "Set de Bazar", Precio: 8200, UE: 6 }
+        { Codigo: "PROD-001", Titulo: "Juguete Camión", Precio: 4500, UE: 12, Categoria: "Juguetes" },
+        { Codigo: "PROD-002", Titulo: "Set de Bazar", Precio: 8200, UE: 6, Categoria: "Bazar" }
     ];
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
@@ -307,18 +307,26 @@ function validateData() {
 
 function processMatchedProducts() {
     state.matchedProducts = [];
+    const categories = {};
+
     state.csvData.forEach(row => {
         const code = (row.Codigo || row.codigo || row.Articulo || Object.values(row)[0] || "").toString().toLowerCase().trim();
         const title = row.Titulo || row.titulo || row.Nombre || Object.values(row)[1] || 'Producto';
-        
-        const price = row.Precio || row.precio || row.Valor || Object.values(row)[2] || '-';
+        const rawPrice = (row.Precio || row.precio || row.Valor || Object.values(row)[2] || '0').toString();
+        const category = row.Categoria || row.categoria || row.Seccion || row.seccion || 'General';
 
+        const price = row.Precio || row.precio || row.Valor || Object.values(row)[2] || '-';
         const ue = row.UE || row.ue || row['Unidades de Embalaje'] || row.Embalaje || null;
+        
         const img = state.images.get(code);
         if (img) {
-            state.matchedProducts.push({ code, title, price, ue, imageUrl: img.url });
+            const product = { code, title, price, ue, imageUrl: img.url };
+            if (!categories[category]) categories[category] = [];
+            categories[category].push(product);
         }
     });
+
+    state.matchedProducts = categories;
 }
 
 function renderCatalog(container, isExport) {
@@ -329,8 +337,6 @@ function renderCatalog(container, isExport) {
     // 1. Cover
     const cover = document.createElement('div');
     cover.className = `catalog-page cover-page ${themeClass} ${isExport ? 'export-mode' : ''}`;
-    
-    // Use official Mar-Plast logo if theme is selected and no manual logo uploaded
     const logoSrc = (isMarPlast && !state.cover.logoUrl) ? state.marPlastLogo : state.cover.logoUrl;
     
     cover.innerHTML = `
@@ -340,33 +346,88 @@ function renderCatalog(container, isExport) {
     `;
     container.appendChild(cover);
 
-    // 2. Pages
-    const itemsPerPage = 6;
-    for (let i = 0; i < Math.ceil(state.matchedProducts.length / itemsPerPage); i++) {
-        const page = document.createElement('div');
-        page.className = `catalog-page ${themeClass} ${isExport ? 'export-mode' : ''}`;
-        const grid = document.createElement('div');
-        grid.className = 'product-grid';
-        
-        state.matchedProducts.slice(i * itemsPerPage, (i + 1) * itemsPerPage).forEach(prod => {
-            grid.innerHTML += `
-                <div class="product-item">
-                    <div class="product-image-container">
-                        <img src="${prod.imageUrl}">
+    // 2. Prepare Data for Sections and Index
+    const sections = Object.keys(state.matchedProducts);
+    const indexData = [];
+    let currentPageNum = 1; // Cover is 1
+
+    // 3. Create Index Page Placeholder
+    const indexPage = document.createElement('div');
+    indexPage.className = `catalog-page index-page ${themeClass} ${isExport ? 'export-mode' : ''}`;
+    currentPageNum++; // Index page is 2
+    const indexPageNum = currentPageNum;
+    container.appendChild(indexPage);
+
+    // 4. Render Sections
+    sections.forEach(sectionName => {
+        const products = state.matchedProducts[sectionName];
+        const sectionPageStart = currentPageNum + 1;
+        indexData.push({ name: sectionName, page: sectionPageStart });
+
+        let processedCount = 0;
+        let isFirstPageOfSection = true;
+
+        while (processedCount < products.length) {
+            currentPageNum++;
+            const itemsPerPage = isFirstPageOfSection ? 4 : 6;
+            const pageItems = products.slice(processedCount, processedCount + itemsPerPage);
+            processedCount += itemsPerPage;
+
+            const page = document.createElement('div');
+            page.className = `catalog-page ${themeClass} ${isExport ? 'export-mode' : ''}`;
+            
+            // Section Header (only on the first page of the section)
+            if (isFirstPageOfSection) {
+                const header = document.createElement('div');
+                header.className = 'section-header';
+                header.innerHTML = `<h2>${sectionName.toUpperCase()}</h2>`;
+                page.appendChild(header);
+            }
+
+            const grid = document.createElement('div');
+            grid.className = 'product-grid';
+            
+            pageItems.forEach(prod => {
+                grid.innerHTML += `
+                    <div class="product-item">
+                        <div class="product-image-container">
+                            <img src="${prod.imageUrl}">
+                        </div>
+                        <div class="product-info">
+                            <span class="product-code">Cód. ${prod.code.toUpperCase()}</span>
+                            <h4 class="product-title" title="${prod.title}">${truncateText(prod.title, 29)}</h4>
+                            ${prod.ue ? `<div class="product-ue">UE: ${prod.ue}</div>` : ''}
+                            <div class="product-price">$${prod.price} <span style="font-size: 0.7em; font-weight: 600;">+IVA</span></div>
+                        </div>
                     </div>
-                    <div class="product-info">
-                        <span class="product-code">Cód. ${prod.code.toUpperCase()}</span>
-                        <h4 class="product-title" title="${prod.title}">${truncateText(prod.title, 29)}</h4>
-                        ${prod.ue ? `<div class="product-ue">UE: ${prod.ue}</div>` : ''}
-                        <div class="product-price">$${prod.price} <span style="font-size: 0.7em; font-weight: 600;">+IVA</span></div>
+                `;
+            });
+            page.appendChild(grid);
+            page.innerHTML += `<div class="page-footer">${getFooterText()}</div> <div class="page-number">${currentPageNum}</div>`;
+            container.appendChild(page);
+            
+            isFirstPageOfSection = false; // Next pages in this section will have 6 items
+        }
+    });
+
+    // 5. Fill Index Page
+    indexPage.innerHTML = `
+        <div class="index-content">
+            <h2 class="index-title">${isMarPlast ? 'ÍNDICE DE CATEGORÍAS' : 'ÍNDICE'}</h2>
+            <div class="index-list">
+                ${indexData.map(item => `
+                    <div class="index-item" data-target-page="${item.page}">
+                        <span class="index-name">${item.name}</span>
+                        <span class="index-dots"></span>
+                        <span class="index-page-num">${item.page}</span>
                     </div>
-                </div>
-            `;
-        });
-        page.appendChild(grid);
-        page.innerHTML += `<div class="page-footer">${getFooterText()}</div>`;
-        container.appendChild(page);
-    }
+                `).join('')}
+            </div>
+        </div>
+        <div class="page-footer">${getFooterText()}</div>
+        <div class="page-number">${indexPageNum}</div>
+    `;
+
     ui.totalPages.textContent = container.children.length;
 }
 
@@ -393,6 +454,34 @@ ui.exportPdfBtn.addEventListener('click', async () => {
             });
             if (i > 0) doc.addPage();
             doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297);
+
+            // Link logic for Index Page
+            if (pages[i].classList.contains('index-page')) {
+                const items = pages[i].querySelectorAll('.index-item');
+                const pageWidthPx = pages[i].offsetWidth || 794;
+                const pageHeightPx = pages[i].offsetHeight || 1123;
+                
+                items.forEach(item => {
+                    const targetPage = parseInt(item.dataset.targetPage);
+                    if (!targetPage) return;
+                    
+                    // Robust relative coordinates
+                    let xOff = 0, yOff = 0;
+                    let el = item;
+                    while (el && el !== pages[i]) {
+                        xOff += el.offsetLeft;
+                        yOff += el.offsetTop;
+                        el = el.offsetParent;
+                    }
+                    
+                    const x = (xOff / pageWidthPx) * 210;
+                    const y = (yOff / pageHeightPx) * 297;
+                    const w = (item.offsetWidth / pageWidthPx) * 210;
+                    const h = (item.offsetHeight / pageHeightPx) * 297;
+                    
+                    doc.link(x, y, w, h, { pageNumber: targetPage });
+                });
+            }
         }
         const name = `Catalogo_MarPlast_${Date.now()}.pdf`;
         const pdfBlob = doc.output('blob');

@@ -408,6 +408,89 @@ header {
     margin-bottom: 2px;
 }
 
+/* --- Section Headers --- */
+.section-header {
+    width: 100%;
+    border-bottom: 2px solid #eee;
+    margin-bottom: 5mm;
+    padding-bottom: 1mm;
+    margin-top: -5mm;
+}
+
+.section-header h2 {
+    font-size: 24pt;
+    font-weight: 800;
+    color: #1e1b4b;
+    letter-spacing: -0.5px;
+}
+
+.theme-marplast .section-header {
+    border-bottom: 4px solid var(--mp-blue);
+}
+
+.theme-marplast .section-header h2 {
+    color: var(--mp-blue);
+}
+
+/* --- Index Page Styles --- */
+.index-page {
+    display: flex;
+    flex-direction: column;
+    padding: 30mm 20mm !important;
+}
+
+.index-title {
+    font-size: 36pt;
+    font-weight: 800;
+    margin-bottom: 20mm;
+    color: #1e1b4b;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5mm;
+}
+
+.theme-marplast .index-title {
+    color: var(--mp-blue);
+    border-bottom: 4px solid var(--mp-orange);
+}
+
+.index-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12pt;
+}
+
+.index-item {
+    display: flex;
+    align-items: baseline;
+    font-size: 18pt;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.index-dots {
+    flex: 1;
+    border-bottom: 2px dotted #ccc;
+    margin: 0 10px;
+}
+
+.index-page-num {
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.theme-marplast .index-page-num {
+    color: var(--mp-orange);
+}
+
+.page-number {
+    position: absolute;
+    bottom: 15px;
+    right: 20mm;
+    font-size: 10pt;
+    font-weight: 700;
+    color: #999;
+}
+
 .drop-zone {
     border: 2px dashed var(--glass-border);
     border-radius: 12px;
@@ -550,11 +633,11 @@ header {
 
 .product-item {
     width: calc(50% - 5mm); /* Dos columnas */
-    height: 90mm; /* Aumentado ligeramente para mayor ventilación */
+    height: 85mm; /* Ajustado para asegurar que 3 filas quepan en A4 sin desborde excesivo */
     display: flex;
     flex-direction: column;
     border: 1px solid #eee;
-    padding: 6mm;
+    padding: 5mm;
     background: #fff;
     overflow: hidden;
 }
