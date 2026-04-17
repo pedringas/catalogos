@@ -27,7 +27,8 @@ const ui = {
     logoInput: document.getElementById('logoInput'),
     logoPreview: document.getElementById('logoPreview'),
     logoDropZone: document.getElementById('logoDropZone'),
-    downloadModel: document.getElementById('downloadModel'),
+    downloadCsv: document.getElementById('downloadCsv'),
+    downloadExcel: document.getElementById('downloadExcel'),
     csvInput: document.getElementById('csvInput'),
     csvDropZone: document.getElementById('csvDropZone'),
     csvStatus: document.getElementById('csvStatus'),
@@ -218,12 +219,23 @@ function checkReady() {
 
 ui.coverTitle.addEventListener('input', (e) => state.cover.title = e.target.value);
 
-ui.downloadModel.addEventListener('click', () => {
-    const csvContent = "Codigo,Titulo,Precio\nPROD-001,Juguete Camión,4500\nPROD-002,Set de Bazar,8200";
+ui.downloadCsv.addEventListener('click', () => {
+    const csvContent = "Codigo,Titulo,Precio,UE\nPROD-001,Juguete Camión,4500,12\nPROD-002,Set de Bazar,8200,6";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url; link.download = "plantilla.csv"; link.click();
+});
+
+ui.downloadExcel.addEventListener('click', () => {
+    const data = [
+        { Codigo: "PROD-001", Titulo: "Juguete Camión", Precio: 4500, UE: 12 },
+        { Codigo: "PROD-002", Titulo: "Set de Bazar", Precio: 8200, UE: 6 }
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Plantilla");
+    XLSX.writeFile(workbook, "plantilla.xlsx");
 });
 
 ui.generateBtn.addEventListener('click', () => {
@@ -298,10 +310,13 @@ function processMatchedProducts() {
     state.csvData.forEach(row => {
         const code = (row.Codigo || row.codigo || row.Articulo || Object.values(row)[0] || "").toString().toLowerCase().trim();
         const title = row.Titulo || row.titulo || row.Nombre || Object.values(row)[1] || 'Producto';
+        
         const price = row.Precio || row.precio || row.Valor || Object.values(row)[2] || '-';
+
+        const ue = row.UE || row.ue || row['Unidades de Embalaje'] || row.Embalaje || null;
         const img = state.images.get(code);
         if (img) {
-            state.matchedProducts.push({ code, title, price, imageUrl: img.url });
+            state.matchedProducts.push({ code, title, price, ue, imageUrl: img.url });
         }
     });
 }
@@ -342,6 +357,7 @@ function renderCatalog(container, isExport) {
                     <div class="product-info">
                         <span class="product-code">Cód. ${prod.code.toUpperCase()}</span>
                         <h4 class="product-title" title="${prod.title}">${truncateText(prod.title, 29)}</h4>
+                        ${prod.ue ? `<div class="product-ue">UE: ${prod.ue}</div>` : ''}
                         <div class="product-price">$${prod.price} <span style="font-size: 0.7em; font-weight: 600;">+IVA</span></div>
                     </div>
                 </div>

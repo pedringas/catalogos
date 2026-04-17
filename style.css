@@ -148,6 +148,12 @@ header {
     gap: 1rem;
 }
 
+.model-downloads {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
 .step-num.alert {
     background: #f59e0b;
 }
@@ -392,9 +398,16 @@ header {
     padding: 2px 10px;
     border-radius: 4px;
     font-size: 9pt;
-    width: fit-content;
     margin-bottom: 10px;
 }
+
+.theme-marplast .product-ue {
+    color: var(--mp-blue);
+    font-size: 11pt;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
 .drop-zone {
     border: 2px dashed var(--glass-border);
     border-radius: 12px;
@@ -564,9 +577,14 @@ header {
 }
 
 .product-price {
-    font-size: calc(1.5rem * var(--price-scale));
-    font-weight: 800;
     margin-top: auto;
+}
+
+.product-ue {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 0.2rem;
 }
 
 .product-image-container {
