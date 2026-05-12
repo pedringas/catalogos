@@ -399,30 +399,49 @@ function renderCatalog(container, isExport) {
     container.appendChild(cover);
 
     // 2. Prepare Data for Sections and Index
-    const sections = Object.keys(state.matchedProducts);
     const indexData = [];
     let currentPageNum = 1; // Cover is 1
 
-    // 3. Create Index Page Placeholder
-    const indexPage = document.createElement('div');
-    indexPage.className = `catalog-page index-page ${themeClass} ${isExport ? 'export-mode' : ''}`;
-    currentPageNum++; // Index page is 2
-    const indexPageNum = currentPageNum;
-    container.appendChild(indexPage);
+    // 3. Create Index Page Placeholders (will be filled after we know total index items)
+    const indexPagePlaceholders = [];
+    // We'll insert index pages after we collect all indexData
 
-    // 4. Render Sections (Category > Subcategory)
+    // 4. First pass: collect index data and calculate product pages
+    // We need to know how many index pages there will be before assigning page numbers.
+    // So we do a dry run first to collect categories/subcategories.
     const categoryNames = Object.keys(state.matchedProducts);
+    const tempIndexData = [];
+    categoryNames.forEach(catName => {
+        tempIndexData.push({ name: catName, isCategory: true });
+        const subcategories = state.matchedProducts[catName];
+        const subNames = Object.keys(subcategories);
+        subNames.forEach(subName => {
+            if (subName) {
+                tempIndexData.push({ name: subName, isSubcategory: true });
+            }
+        });
+    });
+
+    // Calculate how many index pages we need (~18 items per page)
+    const INDEX_ITEMS_PER_PAGE = 18;
+    const totalIndexPages = Math.max(1, Math.ceil(tempIndexData.length / INDEX_ITEMS_PER_PAGE));
+    
+    // Reserve page numbers for index pages
+    const indexStartPageNum = currentPageNum + 1;
+    currentPageNum += totalIndexPages; // Reserve pages for index
+
+    // 5. Render Sections (Category > Subcategory) with proper page numbering
     categoryNames.forEach(catName => {
         const subcategories = state.matchedProducts[catName];
         const sectionPageStart = currentPageNum + 1;
         indexData.push({ name: catName, page: sectionPageStart, isCategory: true });
 
-        let processedCountInCat = 0;
         let isFirstPageOfCat = true;
         const subNames = Object.keys(subcategories);
 
         subNames.forEach(subName => {
             const products = subcategories[subName];
+            let isFirstPageOfSub = true;
             if (subName) {
                 indexData.push({ name: subName, page: currentPageNum + 1, isSubcategory: true });
             }
@@ -430,7 +449,14 @@ function renderCatalog(container, isExport) {
             let processedInSub = 0;
             while (processedInSub < products.length) {
                 currentPageNum++;
-                const itemsPerPage = isFirstPageOfCat ? 4 : 6;
+                
+                // Determine if this page will have headers
+                const willHaveCategoryHeader = isFirstPageOfCat;
+                const willHaveSubcategoryHeader = subName && (isFirstPageOfCat || isFirstPageOfSub);
+                const hasAnyHeader = willHaveCategoryHeader || willHaveSubcategoryHeader;
+                
+                // Pages with headers get 4 products, pages without get 6
+                const itemsPerPage = hasAnyHeader ? 4 : 6;
                 const pageItems = products.slice(processedInSub, processedInSub + itemsPerPage);
                 processedInSub += itemsPerPage;
 
@@ -441,14 +467,14 @@ function renderCatalog(container, isExport) {
                 const headerContainer = document.createElement('div');
                 headerContainer.className = 'headers-container';
                 
-                if (isFirstPageOfCat) {
+                if (willHaveCategoryHeader) {
                     const hText = document.createElement('div');
                     hText.className = 'section-header';
                     hText.innerHTML = `<h2>${catName.toUpperCase()}</h2>`;
                     headerContainer.appendChild(hText);
                 }
                 
-                if (subName && (isFirstPageOfCat || processedInSub <= itemsPerPage)) {
+                if (willHaveSubcategoryHeader) {
                     const subText = document.createElement('div');
                     subText.className = 'subcategory-header';
                     subText.innerHTML = `<h3>${subName}</h3>`;
@@ -492,31 +518,51 @@ function renderCatalog(container, isExport) {
                 container.appendChild(page);
                 
                 isFirstPageOfCat = false;
+                isFirstPageOfSub = false;
             }
         });
     });
 
-    // 5. Fill Index Page
-    indexPage.innerHTML = `
-        <div class="index-content">
-            <h2 class="index-title">${isMarPlast ? 'ÍNDICE DE CATEGORÍAS' : 'ÍNDICE'}</h2>
-            <div class="index-list">
-                ${indexData.map(item => `
-                    <div class="index-item ${item.isSubcategory ? 'index-subcategory' : ''}" data-target-page="${item.page}">
-                        <span class="index-name">${item.name}</span>
-                        <span class="index-dots"></span>
-                        <span class="index-page-num">${item.page}</span>
-                    </div>
-                `).join('')}
+    // 6. Build and insert Index Pages (right after cover, before product pages)
+    const productPages = Array.from(container.querySelectorAll('.catalog-page:not(.cover-page)'));
+    const firstProductPage = productPages[0]; // First non-cover page
+
+    for (let idx = 0; idx < totalIndexPages; idx++) {
+        const pageNum = indexStartPageNum + idx;
+        const startItem = idx * INDEX_ITEMS_PER_PAGE;
+        const endItem = Math.min(startItem + INDEX_ITEMS_PER_PAGE, indexData.length);
+        const pageItems = indexData.slice(startItem, endItem);
+
+        const indexPage = document.createElement('div');
+        indexPage.className = `catalog-page index-page ${themeClass} ${isExport ? 'export-mode' : ''}`;
+
+        const showTitle = idx === 0; // Only show title on first index page
+        indexPage.innerHTML = `
+            <div class="index-content">
+                ${showTitle ? `<h2 class="index-title">${isMarPlast ? 'ÍNDICE DE CATEGORÍAS' : 'ÍNDICE'}</h2>` : ''}
+                <div class="index-list">
+                    ${pageItems.map(item => `
+                        <div class="index-item ${item.isSubcategory ? 'index-subcategory' : ''}" data-target-page="${item.page}">
+                            <span class="index-name">${item.name}</span>
+                            <span class="index-dots"></span>
+                            <span class="index-page-num">${item.page}</span>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
-        </div>
-        <div class="page-footer">${getFooterText()}</div>
-        <div class="page-number">${indexPageNum}</div>
-    `;
+            <div class="page-footer">${getFooterText()}</div>
+            <div class="page-number">${pageNum}</div>
+        `;
+        
+        // Insert index pages right after the cover, before product pages
+        if (firstProductPage) {
+            container.insertBefore(indexPage, firstProductPage);
+        } else {
+            container.appendChild(indexPage);
+        }
+    }
 
-
-
-    // 6. Observations Page
+    // 7. Observations Page
     if (state.observations && state.observations.trim().length > 0) {
         currentPageNum++;
         const obsPage = document.createElement('div');
