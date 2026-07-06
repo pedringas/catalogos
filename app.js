@@ -1,5 +1,5 @@
 // ---------------------------------------------------------
-// CatalogPro v2.2 - Branded Themes (Mar-Plast)
+// CatalogPro v2.3 - Public Release
 // ---------------------------------------------------------
 
 const { jsPDF } = window.jspdf;
@@ -16,10 +16,19 @@ const state = {
     history: [],
     titleScale: 1.0,
     priceScale: 1.0,
+    priceLegend: '+IVA',
     supportedFormats: ['image/jpeg', 'image/png', 'image/webp']
 };
 
 // --- Helper Functions ---
+
+// XSS Sanitization: escapes HTML entities to prevent script injection
+function sanitize(str) {
+    if (str === null || str === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+}
 function formatPriceDisplay(value) {
     if (value === null || value === undefined || value === '' || value === '-') return '-';
     
@@ -81,11 +90,15 @@ const ui = {
     titleScaleValue: document.getElementById('titleScaleValue'),
     priceScale: document.getElementById('priceScale'),
     priceScaleValue: document.getElementById('priceScaleValue'),
+    priceLegend: document.getElementById('priceLegend'),
     clearCsvBtn: document.getElementById('clearCsvBtn'),
     clearImagesBtn: document.getElementById('clearImagesBtn'),
     validationSection: document.getElementById('validationSection'),
     validationReport: document.getElementById('validationReport'),
-    finalObservations: document.getElementById('finalObservations')
+    finalObservations: document.getElementById('finalObservations'),
+    progressContainer: document.getElementById('progressContainer'),
+    progressBar: document.getElementById('progressBar'),
+    progressText: document.getElementById('progressText')
 };
 
 // --- Initialization ---
@@ -94,7 +107,11 @@ initDragAndDrop();
 // --- 1. Tab & Theme Management ---
 ui.tabBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 function switchTab(tabId) {
-    ui.tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+    ui.tabBtns.forEach(b => {
+        const isActive = b.dataset.tab === tabId;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
     ui.tabContents.forEach(c => c.classList.toggle('active', c.id === tabId));
     state.tabs.current = tabId;
 }
@@ -113,6 +130,10 @@ ui.priceScale.addEventListener('input', (e) => {
     ui.priceScaleValue.textContent = `${Math.round(state.priceScale * 100)}%`;
     document.documentElement.style.setProperty('--price-scale', state.priceScale);
 });
+
+if (ui.priceLegend) {
+    ui.priceLegend.addEventListener('change', (e) => state.priceLegend = e.target.value);
+}
 
 function getFooterText() {
     const now = new Date();
@@ -229,8 +250,8 @@ function handleImages(files) {
 function renderGallery() {
     ui.imageGallery.innerHTML = Array.from(state.images).map(([name, img]) => `
         <div class="thumb-item">
-            <img src="${img.url}">
-            <button class="remove-btn" onclick="removeImage('${name}')">✕</button>
+            <img src="${img.url}" alt="${sanitize(name)}">
+            <button class="remove-btn" onclick="removeImage('${sanitize(name)}')">✕</button>
         </div>
     `).join('');
     ui.imageCount.textContent = `${state.images.size} archivos`;
@@ -490,23 +511,23 @@ function renderCatalog(container, isExport) {
                     grid.innerHTML += `
                         <div class="product-item">
                             <div class="product-image-container">
-                                <img src="${prod.imageUrl}">
+                                <img src="${prod.imageUrl}" alt="${sanitize(prod.title)}">
                             </div>
                             <div class="product-info">
                                 <div class="product-meta">
-                                    <span class="product-code">Cód. ${prod.code.toUpperCase()}</span>
+                                    <span class="product-code">Cód. ${sanitize(prod.code.toUpperCase())}</span>
                                     ${prod.offerPrice ? `<span class="offer-badge">¡OFERTA!</span>` : ''}
                                 </div>
-                                <h4 class="product-title" title="${prod.title}">${truncateText(prod.title, 29)}</h4>
-                                ${prod.ue ? `<div class="product-ue">UE: ${prod.ue}</div>` : ''}
+                                <h4 class="product-title" title="${sanitize(prod.title)}">${sanitize(truncateText(prod.title, 29))}</h4>
+                                ${prod.ue ? `<div class="product-ue">UE: ${sanitize(prod.ue)}</div>` : ''}
                                 <div class="product-price">
                                     ${prod.offerPrice ? `
                                         <div class="offer-layout">
-                                            <span class="price-old">$${prod.price}</span>
-                                            <span class="price-new">$${prod.offerPrice} <span class="tax-tag">+IVA</span></span>
+                                            <span class="price-old">$${sanitize(prod.price)}</span>
+                                            <span class="price-new">$${sanitize(prod.offerPrice)} <span class="tax-tag">${sanitize(state.priceLegend)}</span></span>
                                         </div>
                                     ` : `
-                                        <div class="standard-price">$${prod.price} <span class="tax-tag">+IVA</span></div>
+                                        <div class="standard-price">$${sanitize(prod.price)} <span class="tax-tag">${sanitize(state.priceLegend)}</span></div>
                                     `}
                                 </div>
                             </div>
@@ -585,8 +606,11 @@ function renderCatalog(container, isExport) {
 // --- 4. Export ---
 
 ui.exportPdfBtn.addEventListener('click', async () => {
-    ui.loadingMsg.textContent = "Generando PDF corporativo...";
+    ui.loadingMsg.textContent = "Generando PDF...";
     ui.loadingOverlay.style.display = 'flex';
+    ui.progressContainer.style.display = 'block';
+    ui.progressBar.style.width = '0%';
+    ui.progressText.textContent = '';
     
     // Forzar variables CSS en el buffer de exportación
     ui.exportBuffer.style.setProperty('--title-scale', state.titleScale);
@@ -597,7 +621,17 @@ ui.exportPdfBtn.addEventListener('click', async () => {
     try {
         const doc = new jsPDF('p', 'mm', 'a4');
         const pages = ui.exportBuffer.querySelectorAll('.catalog-page');
-        for (let i = 0; i < pages.length; i++) {
+        const totalPages = pages.length;
+        
+        for (let i = 0; i < totalPages; i++) {
+            // Update progress
+            const progress = Math.round(((i + 1) / totalPages) * 100);
+            ui.progressBar.style.width = `${progress}%`;
+            ui.progressText.textContent = `Procesando página ${i + 1} de ${totalPages}`;
+            
+            // Small delay to let the UI update
+            await new Promise(r => setTimeout(r, 50));
+            
             await waitImages(pages[i]);
             const canvas = await html2canvas(pages[i], {
                 scale: 2, useCORS: true, logging: false,
@@ -616,7 +650,6 @@ ui.exportPdfBtn.addEventListener('click', async () => {
                     const targetPage = parseInt(item.dataset.targetPage);
                     if (!targetPage) return;
                     
-                    // Robust relative coordinates
                     let xOff = 0, yOff = 0;
                     let el = item;
                     while (el && el !== pages[i]) {
@@ -634,14 +667,24 @@ ui.exportPdfBtn.addEventListener('click', async () => {
                 });
             }
         }
-        const name = `Catalogo_MarPlast_${Date.now()}.pdf`;
+        
+        // Dynamic PDF name based on catalog title
+        const catalogTitle = (state.cover.title || 'Catalogo').replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ\s]/g, '').replace(/\s+/g, '_');
+        const name = `${catalogTitle}_${new Date().toISOString().slice(0,10)}.pdf`;
         const pdfBlob = doc.output('blob');
         const pdfUrl = URL.createObjectURL(pdfBlob);
         
         doc.save(name);
         addToHistory(name, pdfUrl);
-    } catch (err) { alert("Error al exportar."); }
-    finally { ui.loadingOverlay.style.display = 'none'; ui.exportBuffer.innerHTML = ''; }
+    } catch (err) {
+        console.error('Error al exportar PDF:', err);
+        alert(`Error al exportar el PDF. Detalle: ${err.message || 'Error desconocido'}`);
+    }
+    finally {
+        ui.loadingOverlay.style.display = 'none';
+        ui.progressContainer.style.display = 'none';
+        ui.exportBuffer.innerHTML = '';
+    }
 });
 
 function waitImages(element) {

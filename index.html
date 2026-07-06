@@ -3,15 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Catálogos Premium v2</title>
+    <title>CatalogPro - Generador de Catálogos PDF Profesionales</title>
+    <meta name="description" content="Genera catálogos PDF profesionales desde Excel. Sube tus productos, elige un diseño y descarga tu catálogo listo para imprimir.">
+    <meta property="og:title" content="CatalogPro - Generador de Catálogos PDF Profesionales">
+    <meta property="og:description" content="Crea catálogos profesionales desde tu Excel en segundos.">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <div class="bg-gradient"></div>
@@ -20,19 +26,19 @@
         <header>
             <div class="logo-main">
                 <h1>Catalog<span>Pro</span></h1>
-                <span class="version">v2.0</span>
+                <span class="version">v2.1</span>
             </div>
+            <p class="header-subtitle">Generador de catálogos PDF profesionales</p>
         </header>
 
-        <nav class="tab-nav">
-            <button class="tab-btn active" data-tab="tab-carga">1. Carga</button>
-            <button class="tab-btn" data-tab="tab-preview">2. Vista Previa</button>
-            <button class="tab-btn" data-tab="tab-history">3. Historial</button>
+        <nav class="tab-nav" role="tablist" aria-label="Secciones">
+            <button class="tab-btn active" data-tab="tab-carga" role="tab" aria-selected="true" aria-controls="tab-carga" id="btn-tab-carga">1. Carga</button>
+            <button class="tab-btn" data-tab="tab-preview" role="tab" aria-selected="false" aria-controls="tab-preview" id="btn-tab-preview">2. Vista Previa</button>
+            <button class="tab-btn" data-tab="tab-history" role="tab" aria-selected="false" aria-controls="tab-history" id="btn-tab-history">3. Historial</button>
         </nav>
 
-        <div class="tab-content active" id="tab-carga">
+        <div class="tab-content active" id="tab-carga" role="tabpanel" aria-labelledby="btn-tab-carga">
             <section class="upload-section">
-                <!-- Portada Section -->
                 <div class="glass-card">
                     <div class="card-header">
                         <span class="step-num">Portada</span>
@@ -45,7 +51,7 @@
                         </div>
                         <div class="input-group">
                             <label>Logo de la Portada</label>
-                            <div class="logo-upload-zone" id="logoDropZone">
+                            <div class="logo-upload-zone" id="logoDropZone" role="button" tabindex="0" aria-label="Subir logo">
                                 <input type="file" id="logoInput" accept="image/*" hidden>
                                 <div id="logoPreview" class="logo-preview-box">
                                     <span>Haz clic para subir logo</span>
@@ -55,7 +61,6 @@
                     </div>
                 </div>
 
-                <!-- Estilo Section -->
                 <div class="glass-card">
                     <div class="card-header">
                         <span class="step-num">Estilo</span>
@@ -91,27 +96,33 @@
                                 <span id="priceScaleValue">100%</span>
                             </div>
                         </div>
+                        <div class="input-group" style="margin-top: 1rem;">
+                            <label for="priceLegend">Leyenda de Precio</label>
+                            <select id="priceLegend">
+                                <option value="+IVA">+ IVA</option>
+                                <option value="Final">Final</option>
+                            </select>
+                        </div>
                         <div class="input-group" style="margin-top: 1.5rem;">
                             <label for="finalObservations">Aclaraciones Finales (Opcional)</label>
-                            <textarea id="finalObservations" placeholder="Ej: Los precios están sujetos a cambios sin previo aviso. Validez del presupuesto: 30 días." style="width: 100%; height: 80px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: 10px; padding: 10px; color: white; font-family: inherit; font-size: 0.9rem; resize: none;"></textarea>
+                            <textarea id="finalObservations" placeholder="Ej: Los precios están sujetos a cambios sin previo aviso."></textarea>
                         </div>
                     </div>
                 </div>
 
-                <!-- CSV Section -->
                 <div class="glass-card">
                     <div class="card-header">
                         <span class="step-num">Datos</span>
                         <h2>Planilla y Modelo</h2>
                         <div class="header-actions">
-                            <button id="clearCsvBtn" class="btn-text-danger" style="display: none;">Limpiar Datos</button>
+                            <button id="clearCsvBtn" class="btn-text-danger" style="display: none;" aria-label="Limpiar datos">Limpiar Datos</button>
                             <div class="model-downloads">
                                 <button id="downloadCsv" class="btn-text-only">Modelo .csv</button>
                                 <button id="downloadExcel" class="btn-text-only">Modelo .xlsx</button>
                             </div>
                         </div>
                     </div>
-                    <div class="drop-zone tiny" id="csvDropZone">
+                    <div class="drop-zone tiny" id="csvDropZone" role="button" tabindex="0" aria-label="Subir archivo de datos">
                         <input type="file" id="csvInput" accept=".csv, .xlsx, .xls" hidden>
                         <div class="drop-content-minimal" id="csvStatus">
                             <span>Selecciona archivo Excel o CSV</span>
@@ -119,38 +130,32 @@
                     </div>
                 </div>
 
-                <!-- Validation Report (Hidden by default) -->
-                <div id="validationSection" class="glass-card validation-card" style="display: none;">
+                <div id="validationSection" class="glass-card validation-card" style="display: none;" role="alert">
                     <div class="card-header">
                         <span class="step-num alert">Reporte</span>
                         <h2>Observaciones de Carga</h2>
                     </div>
-                    <div id="validationReport" class="validation-report">
-                        <!-- Report contents -->
-                    </div>
+                    <div id="validationReport" class="validation-report"></div>
                 </div>
 
-                <!-- Images Section -->
                 <div class="glass-card">
                     <div class="card-header">
                         <span class="step-num">Imágenes</span>
                         <h2>Galería</h2>
                         <div class="header-actions">
-                            <button id="clearImagesBtn" class="btn-text-danger" style="display: none;">Vaciar Todo</button>
-                            <span class="file-count" id="imageCount">0 archivos</span>
+                            <button id="clearImagesBtn" class="btn-text-danger" style="display: none;" aria-label="Vaciar imágenes">Vaciar Todo</button>
+                            <span class="file-count" id="imageCount" aria-live="polite">0 archivos</span>
                         </div>
                     </div>
                     <div class="image-upload-area">
-                        <div class="drop-zone large" id="imageDropZone">
+                        <div class="drop-zone large" id="imageDropZone" role="button" tabindex="0" aria-label="Subir imágenes de productos">
                             <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
                             <div class="drop-content">
                                 <div class="icon">🖼️</div>
                                 <p>Arrastra o haz clic para subir imágenes</p>
                             </div>
                         </div>
-                        <div id="imageGallery" class="thumbnail-gallery">
-                            <!-- Miniaturas aquí -->
-                        </div>
+                        <div id="imageGallery" class="thumbnail-gallery"></div>
                     </div>
                 </div>
 
@@ -160,12 +165,12 @@
             </section>
         </div>
 
-        <div class="tab-content" id="tab-preview">
+        <div class="tab-content" id="tab-preview" role="tabpanel" aria-labelledby="btn-tab-preview">
             <section class="preview-section">
                 <div class="section-header">
                     <h2>Vista Previa</h2>
-                    <button id="exportPdfBtn" class="btn-accent">
-                        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    <button id="exportPdfBtn" class="btn-accent" aria-label="Descargar PDF">
+                        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                         Descargar PDF
                     </button>
                 </div>
@@ -174,13 +179,11 @@
                         Página <span id="currentPage">1</span> de <span id="totalPages">1</span>
                     </div>
                 </div>
-                <div id="catalogContainer" class="catalog-container preview-grid">
-                    <!-- Páginas del catálogo -->
-                </div>
+                <div id="catalogContainer" class="catalog-container preview-grid"></div>
             </section>
         </div>
 
-        <div class="tab-content" id="tab-history">
+        <div class="tab-content" id="tab-history" role="tabpanel" aria-labelledby="btn-tab-history">
             <section class="history-section">
                 <h2>Historial de la Sesión</h2>
                 <div id="historyList" class="history-list">
@@ -189,14 +192,21 @@
             </section>
         </div>
 
-        <div id="loadingOverlay" class="overlay" style="display: none;">
-            <div class="loader"></div>
+        <div id="loadingOverlay" class="overlay" style="display: none;" role="status" aria-live="assertive">
+            <div class="loader" aria-hidden="true"></div>
             <p id="loadingMsg">Procesando...</p>
+            <div class="progress-bar-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <p id="progressText" class="progress-text"></p>
         </div>
 
-        <!-- Buffer oculto para generación de PDF de alta fidelidad -->
-        <div id="exportBuffer" class="export-buffer" style="position: absolute; left: -9999px; top: 0;"></div>
+        <div id="exportBuffer" class="export-buffer" style="position: absolute; left: -9999px; top: 0;" aria-hidden="true"></div>
     </main>
+
+    <footer class="app-footer">
+        <p>CatalogPro — Todos los datos se procesan localmente en tu navegador. No se almacena información.</p>
+    </footer>
 
     <script src="app.js"></script>
 </body>
