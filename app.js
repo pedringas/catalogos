@@ -18,6 +18,7 @@ const state = {
     titleScale: 1.0,
     priceScale: 1.0,
     priceLegend: '+IVA',
+    showPrice: true,
     supportedFormats: ['image/jpeg', 'image/png', 'image/webp']
 };
 
@@ -93,6 +94,9 @@ const ui = {
     priceScale: document.getElementById('priceScale'),
     priceScaleValue: document.getElementById('priceScaleValue'),
     priceLegend: document.getElementById('priceLegend'),
+    showPriceToggle: document.getElementById('showPriceToggle'),
+    priceScaleGroup: document.getElementById('priceScaleGroup'),
+    priceLegendGroup: document.getElementById('priceLegendGroup'),
     clearCsvBtn: document.getElementById('clearCsvBtn'),
     clearImagesBtn: document.getElementById('clearImagesBtn'),
     validationSection: document.getElementById('validationSection'),
@@ -135,6 +139,14 @@ ui.priceScale.addEventListener('input', (e) => {
 
 if (ui.priceLegend) {
     ui.priceLegend.addEventListener('change', (e) => state.priceLegend = e.target.value);
+}
+
+if (ui.showPriceToggle) {
+    ui.showPriceToggle.addEventListener('change', (e) => {
+        state.showPrice = e.target.checked;
+        ui.priceScaleGroup.style.display = state.showPrice ? '' : 'none';
+        ui.priceLegendGroup.style.display = state.showPrice ? '' : 'none';
+    });
 }
 
 // Devuelve la fecha local de hoy en formato YYYY-MM-DD (sin corrimiento por huso horario)
@@ -536,10 +548,11 @@ function renderCatalog(container, isExport) {
                             <div class="product-info">
                                 <div class="product-meta">
                                     <span class="product-code">Cód. ${sanitize(prod.code.toUpperCase())}</span>
-                                    ${prod.offerPrice ? `<span class="offer-badge">¡OFERTA!</span>` : ''}
+                                    ${(state.showPrice && prod.offerPrice) ? `<span class="offer-badge">¡OFERTA!</span>` : ''}
                                 </div>
                                 <h4 class="product-title" title="${sanitize(prod.title)}">${sanitize(truncateText(prod.title, 29))}</h4>
                                 ${prod.ue ? `<div class="product-ue">UE: ${sanitize(prod.ue)}</div>` : ''}
+                                ${state.showPrice ? `
                                 <div class="product-price">
                                     ${prod.offerPrice ? `
                                         <div class="offer-layout">
@@ -550,6 +563,7 @@ function renderCatalog(container, isExport) {
                                         <div class="standard-price">$${sanitize(prod.price)} <span class="tax-tag">${sanitize(state.priceLegend)}</span></div>
                                     `}
                                 </div>
+                                ` : ''}
                             </div>
                         </div>
                     `;

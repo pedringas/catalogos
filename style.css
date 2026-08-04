@@ -184,6 +184,27 @@ header {
     font-size: 1rem;
 }
 
+.show-price-toggle {
+    margin-bottom: 1rem;
+}
+
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text) !important;
+    margin-bottom: 0 !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent, #6366f1);
+    cursor: pointer;
+}
+
 .input-group select option {
     background-color: var(--bg-dark);
     color: var(--text);
