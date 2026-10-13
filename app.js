@@ -543,15 +543,15 @@ function renderCatalog(container, isExport) {
                     grid.innerHTML += `
                         <div class="product-item">
                             <div class="product-image-container">
+                                ${(state.showPrice && prod.offerPrice) ? `<span class="offer-badge">¡OFERTA!</span>` : ''}
                                 <img src="${prod.imageUrl}" alt="${sanitize(prod.title)}">
                             </div>
                             <div class="product-info">
                                 <div class="product-meta">
                                     <span class="product-code">Cód. ${sanitize(prod.code.toUpperCase())}</span>
-                                    ${(state.showPrice && prod.offerPrice) ? `<span class="offer-badge">¡OFERTA!</span>` : ''}
+                                    ${prod.ue ? `<span class="product-ue">UE: ${sanitize(prod.ue)}</span>` : ''}
                                 </div>
                                 <h4 class="product-title" title="${sanitize(prod.title)}">${sanitize(truncateText(prod.title, 29))}</h4>
-                                ${prod.ue ? `<div class="product-ue">UE: ${sanitize(prod.ue)}</div>` : ''}
                                 ${state.showPrice ? `
                                 <div class="product-price">
                                     ${prod.offerPrice ? `
@@ -592,9 +592,12 @@ function renderCatalog(container, isExport) {
         indexPage.className = `catalog-page index-page ${themeClass} ${isExport ? 'export-mode' : ''}`;
 
         const showTitle = idx === 0; // Only show title on first index page
+        const showPriceNote = showTitle && state.showPrice;
+        const priceNote = `Los precios de este catálogo son ${state.priceLegend === '+IVA' ? '+ IVA' : 'con IVA incluido'}`;
         indexPage.innerHTML = `
             <div class="index-content">
-                ${showTitle ? `<h2 class="index-title">${isMarPlast ? 'ÍNDICE DE CATEGORÍAS' : 'ÍNDICE'}</h2>` : ''}
+                ${showTitle ? `<h2 class="index-title ${showPriceNote ? 'has-price-note' : ''}">${isMarPlast ? 'ÍNDICE DE CATEGORÍAS' : 'ÍNDICE'}</h2>` : ''}
+                ${showPriceNote ? `<p class="index-price-note">${priceNote}</p>` : ''}
                 <div class="index-list">
                     ${pageItems.map(item => `
                         <div class="index-item ${item.isSubcategory ? 'index-subcategory' : ''}" data-target-page="${item.page}">
