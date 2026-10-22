@@ -538,7 +538,8 @@ function renderCatalog(container, isExport) {
 
                 const grid = document.createElement('div');
                 grid.className = 'product-grid';
-                
+
+                const taxTag = state.priceLegend ? ` <span class="tax-tag">${sanitize(state.priceLegend)}</span>` : '';
                 pageItems.forEach(prod => {
                     grid.innerHTML += `
                         <div class="product-item">
@@ -557,10 +558,10 @@ function renderCatalog(container, isExport) {
                                     ${prod.offerPrice ? `
                                         <div class="offer-layout">
                                             <span class="price-old">$${sanitize(prod.price)}</span>
-                                            <span class="price-new">$${sanitize(prod.offerPrice)} <span class="tax-tag">${sanitize(state.priceLegend)}</span></span>
+                                            <span class="price-new">$${sanitize(prod.offerPrice)}${taxTag}</span>
                                         </div>
                                     ` : `
-                                        <div class="standard-price">$${sanitize(prod.price)} <span class="tax-tag">${sanitize(state.priceLegend)}</span></div>
+                                        <div class="standard-price">$${sanitize(prod.price)}${taxTag}</div>
                                     `}
                                 </div>
                                 ` : ''}
@@ -592,7 +593,7 @@ function renderCatalog(container, isExport) {
         indexPage.className = `catalog-page index-page ${themeClass} ${isExport ? 'export-mode' : ''}`;
 
         const showTitle = idx === 0; // Only show title on first index page
-        const showPriceNote = showTitle && state.showPrice;
+        const showPriceNote = showTitle && state.showPrice && state.priceLegend !== '';
         const priceNote = `Los precios de este catálogo son ${state.priceLegend === '+IVA' ? '+ IVA' : 'con IVA incluido'}`;
         indexPage.innerHTML = `
             <div class="index-content">
